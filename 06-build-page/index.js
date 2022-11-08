@@ -6,15 +6,6 @@ const { text } = require("stream/consumers");
 const projectDistPath = path.join(__dirname, "project-dist");
 
 //check dir existance, if there is no dir - create dir, if there is dir - delete and create dir
-function checkExistance(targetPath) {
-  fs.stat(targetPath, function (err) {
-    if (!err) {
-      return true;
-    } else if (err.code === "ENOENT") {
-      return false;
-    }
-  });
-}
 fs.stat(projectDistPath, function (err) {
   if (!err) {
     fs.rm(projectDistPath, { force: true, recursive: true }, (err) => {
@@ -39,16 +30,49 @@ fs.stat(projectDistPath, function (err) {
 });
 
 async function buildPage() {
-  // console.log("asdsad");
   const templatePath = path.join(__dirname, "template.html"); // Обьявление путей
   const stylesPath = path.join(__dirname, "styles");
   const assetsPath = path.join(__dirname, "assets");
   const copyAssetsPath = path.join(projectDistPath, "assets");
   const componentsPath = path.join(__dirname, "components");
 
-  let htmlContent;
+  //копирование assets
+  fs.mkdir(copyAssetsPath, (err) => {
+    if (err) console.log(err);
+    else {
+      copyDirRecursive(assetsPath, copyAssetsPath);
+    }
+  });
+  function copyFile(filePath, fileCopyPath) {
+    fs.copyFile(filePath, fileCopyPath, (err) => {
+      if (err) console.log(err);
+    });
+  }
+  function copyDirRecursive(dirPath, dirCopyPath) {
+    fs.readdir(dirPath, { withFileTypes: true }, (err, data) => {
+      if (err) console.log(err);
+      else {
+        const items = data;
+        items.forEach((item) => {
+          const itemPath = path.join(dirPath, item.name);
+          const itemCopyPath = path.join(dirCopyPath, item.name);
+          if (item.isFile()) {
+            copyFile(itemPath, itemCopyPath);
+          } else {
+            fs.mkdir(itemCopyPath, (err) => {
+              if (err) console.log(err);
+              else {
+                copyDirRecursive(itemPath, itemCopyPath);
+              }
+            });
+          }
+        });
+      }
+    });
+  }
 
   //запись html
+  let htmlContent;
   fs.readdir(componentsPath, { withFileTypes: true }, (err, data) => {
     //чтение папки с html
     if (err) console.log(err);
@@ -61,7 +85,6 @@ async function buildPage() {
         if (err) console.log(err);
         else {
           htmlContent = data;
-
           let realComponents = [];
           components.forEach((elem, index) => {
             const ext = path.extname(elem.name);
@@ -69,9 +92,6 @@ async function buildPage() {
               realComponents.push(elem);
             }
           });
-          console.log(components);
-          console.log("-----------------------");
-          console.log(realComponents);
           // запись компонентов html в шаблон
           realComponents.forEach((elem, index, arr) => {
             const name = elem.name.split(".")[0];
@@ -102,19 +122,12 @@ async function buildPage() {
                           htmlContent,
                           (err) => {
                             if (err) console.log(err);
-                            else {
-                            }
                           }
                         );
                       }
                     }
                   }
                 );
-                // let writeStream = fs.createWriteStream(
-                //   path.join(projectDistPath, "index.html"),
-                //   "utf-8"
-                // );
-                // writeStream.write(htmlContent);
               });
             }
           });
