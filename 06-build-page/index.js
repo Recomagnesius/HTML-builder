@@ -1,4 +1,3 @@
-//Я ДОДЕЛАЮ, ПОЖАЛУЙСТА ОСТАВЬТЕ СВОИ КОТНАКТЫ ИЛИ ПРОВЕРЬТЕ К КОНЦУ СРОКА ЕСЛИ ЕСТЬ ТАКАЯ ВОЗМОЖНОСТЬ
 const fs = require("fs");
 const path = require("path");
 const { text } = require("stream/consumers");
@@ -32,9 +31,39 @@ fs.stat(projectDistPath, function (err) {
 async function buildPage() {
   const templatePath = path.join(__dirname, "template.html"); // Обьявление путей
   const stylesPath = path.join(__dirname, "styles");
+  const stylesBundlePath = path.join(projectDistPath, "style.css");
   const assetsPath = path.join(__dirname, "assets");
   const copyAssetsPath = path.join(projectDistPath, "assets");
   const componentsPath = path.join(__dirname, "components");
+
+  //сборка стилей
+  fs.readdir(stylesPath, { withFileTypes: true }, (err, files) => {
+    if (err) console.log(err);
+    else {
+      fs.writeFile(stylesBundlePath, "", (err) => {
+        if (err) console.log(err);
+        else {
+          files.forEach((file) => {
+            if (file.isFile()) {
+              const filePath = path.join(stylesPath, file.name);
+              const name = file.name;
+              const ext = path.extname(name);
+              if (ext == ".css") {
+                fs.readFile(filePath, (err, data) => {
+                  if (err) console.log(err);
+                  else {
+                    fs.appendFile(stylesBundlePath, data, (err) => {
+                      if (err) console.log(err);
+                    });
+                  }
+                });
+              }
+            }
+          });
+        }
+      });
+    }
+  });
 
   //копирование assets
   fs.mkdir(copyAssetsPath, (err) => {
